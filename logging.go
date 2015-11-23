@@ -7,8 +7,8 @@ import (
 
 func initLoggers() {
 
-	infoFile, _ := createLogFile("atmosReader_Info.log")
-	errorFile, _ := createLogFile("atmosReader_Error.log")
+	infoFile, _ := createLogFile("atmosreader_Info.log")
+	errorFile, _ := createLogFile("atmosreader_Error.log")
 
 	Info = log.New(infoFile, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
 	Error = log.New(errorFile, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
