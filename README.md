@@ -5,6 +5,10 @@ Requires Go 1.5
 
 Build using one of the build scripts.
 
+    ./build.sh
+    ./buildLinux.sh
+        
+
 Example
 
     ./atmosreader -url=https://some.host.com -secret=XXX -uid=XXX/XXX -atmosDir=s3 -storagePath=/temp

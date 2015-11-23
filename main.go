@@ -30,6 +30,7 @@ var (
 	Info        *log.Logger
 	Error       *log.Logger
 	wg          sync.WaitGroup
+	msWait		int = 200
 )
 
 func main() {
@@ -64,7 +65,7 @@ func initApp() {
 }
 
 func readDirectory(security Security, resource string) {
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(time.Duration(msWait) * time.Millisecond)
 	data, err := request(security, "/rest/namespace/"+resource)
 	if err != nil {
 		Error.Println("Failed to read directory:", resource, err)
@@ -82,7 +83,7 @@ func readDirectory(security Security, resource string) {
 }
 
 func readFile(security Security, objectId string, resource string, fileName string) {
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(time.Duration(msWait) * time.Millisecond)
 	defer wg.Done()
 	url := "/rest/objects/" + objectId
 	data, err := request(security, url)
