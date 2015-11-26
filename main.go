@@ -13,6 +13,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"errors"
+	"strconv"
 )
 
 type Security struct {
@@ -30,7 +32,7 @@ var (
 	Info        *log.Logger
 	Error       *log.Logger
 	wg          sync.WaitGroup
-	msWait		int = 200
+	msWait		int = 250
 )
 
 func main() {
@@ -50,7 +52,7 @@ func main() {
 }
 
 func initApp() {
-	fmt.Println("Atmos reader 1.0.0")
+	fmt.Println("Atmos reader 1.0.1")
 
 	// Init Loggers
 	initLoggers()
@@ -114,6 +116,10 @@ func request(security Security, resource string) ([]byte, error) {
 	res, err := client.Do(req)
 	if err != nil {
 		return nil, err
+	}
+
+	if res.StatusCode != 200 {
+		return nil, errors.New("Status code equals: " + strconv.Itoa(res.StatusCode))
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
