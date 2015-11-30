@@ -4,17 +4,18 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"errors"
-	"strconv"
 )
 
 type Security struct {
@@ -32,7 +33,8 @@ var (
 	Info        *log.Logger
 	Error       *log.Logger
 	wg          sync.WaitGroup
-	msWait		int = 250
+	msWait      int = 250
+	tokens          = make(chan bool, 3)
 )
 
 func main() {
@@ -42,6 +44,9 @@ func main() {
 	if testFlags(url, secret, uid, atmosDir, storagePath) == false || testStoragePath(storagePath) == false {
 		return
 	}
+
+	// Init Loggers
+	initLoggers()
 
 	start := time.Now()
 	Info.Println("Started")
@@ -54,9 +59,6 @@ func main() {
 func initApp() {
 	fmt.Println("Atmos reader 1.0.1")
 
-	// Init Loggers
-	initLoggers()
-
 	// Flags
 	flag.StringVar(&url, "url", "", "The URL to the Atmos device in the form of https://some.host.com.")
 	flag.StringVar(&secret, "secret", "", "The secret for your Atmos account.")
@@ -67,7 +69,7 @@ func initApp() {
 }
 
 func readDirectory(security Security, resource string) {
-	time.Sleep(time.Duration(msWait) * time.Millisecond)
+	Info.Println("Number of Go Routines", runtime.NumGoroutine())
 	data, err := request(security, "/rest/namespace/"+resource)
 	if err != nil {
 		Error.Println("Failed to read directory:", resource, err)
@@ -79,14 +81,16 @@ func readDirectory(security Security, resource string) {
 			readDirectory(security, resource+"/"+directoryEntry.Filename)
 		} else {
 			wg.Add(1)
+			tokens <- true // acquire a token
 			go readFile(security, directoryEntry.ObjectID, resource, directoryEntry.Filename)
 		}
 	}
 }
 
 func readFile(security Security, objectId string, resource string, fileName string) {
-	time.Sleep(time.Duration(msWait) * time.Millisecond)
-	defer wg.Done()
+	defer func() {
+		wg.Done()
+		<-tokens }()
 	url := "/rest/objects/" + objectId
 	data, err := request(security, url)
 	if err != nil {
