@@ -11,7 +11,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -34,7 +33,7 @@ var (
 	Error       *log.Logger
 	wg          sync.WaitGroup
 	msWait      int = 250
-	tokens          = make(chan bool, 3)
+	tokens          = make(chan bool, 5)
 )
 
 func main() {
@@ -52,12 +51,11 @@ func main() {
 	Info.Println("Started")
 	readDirectory(Security{endpoint: url, secret: secret, uid: uid}, atmosDir)
 	wg.Wait()
-	elapsed := time.Since(start)
-	Info.Println("Complete", elapsed.String())
+	Info.Println("Complete", time.Since(start).String())
 }
 
 func initApp() {
-	fmt.Println("Atmos reader 1.0.1")
+	fmt.Println("Atmos reader 1.0.2")
 
 	// Flags
 	flag.StringVar(&url, "url", "", "The URL to the Atmos device in the form of https://some.host.com.")
@@ -69,7 +67,6 @@ func initApp() {
 }
 
 func readDirectory(security Security, resource string) {
-	Info.Println("Number of Go Routines", runtime.NumGoroutine())
 	data, err := request(security, "/rest/namespace/"+resource)
 	if err != nil {
 		Error.Println("Failed to read directory:", resource, err)
@@ -78,6 +75,8 @@ func readDirectory(security Security, resource string) {
 	var directoryList DirectoryList = ParseDirectoryEntry(data)
 	for _, directoryEntry := range directoryList.DirectoryEntry {
 		if directoryEntry.IsDirectory() {
+			// Pause before the next directory read to give the target server a rest
+			time.Sleep(100 * time.Millisecond)
 			readDirectory(security, resource+"/"+directoryEntry.Filename)
 		} else {
 			wg.Add(1)
@@ -90,7 +89,8 @@ func readDirectory(security Security, resource string) {
 func readFile(security Security, objectId string, resource string, fileName string) {
 	defer func() {
 		wg.Done()
-		<-tokens }()
+		<-tokens
+	}()
 	url := "/rest/objects/" + objectId
 	data, err := request(security, url)
 	if err != nil {

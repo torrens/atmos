@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/xml"
+	"sort"
+	"strconv"
 )
 
 type ListDirectoryResponse struct {
@@ -29,5 +31,16 @@ func (this DirectoryEntry) IsDirectory() bool {
 func ParseDirectoryEntry(data []byte) DirectoryList {
 	var listDirectoryResponse ListDirectoryResponse
 	xml.Unmarshal(data, &listDirectoryResponse)
+	sort.Sort(ByFileName(listDirectoryResponse.DirectoryList.DirectoryEntry))
 	return listDirectoryResponse.DirectoryList
+}
+
+type ByFileName []DirectoryEntry
+
+func (f ByFileName) Len() int      { return len(f) }
+func (f ByFileName) Swap(i, j int) { f[i], f[j] = f[j], f[i] }
+func (f ByFileName) Less(i, j int) bool {
+	first, _ := strconv.Atoi(f[i].Filename)
+	second, _ := strconv.Atoi(f[j].Filename)
+	return  first < second
 }
